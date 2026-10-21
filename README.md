@@ -4,7 +4,7 @@ Play a score's own audio on its own engraved pages, and follow along: a marker o
 
 Web notation libraries draw the score themselves from MusicXML or similar, reflowing it to the screen, which can make a carefully engraved score harder to read. Where they offer playback, it is usually synthesized, or a recording aligned by hand. Segno keeps the pages the engraver set and plays a real recording without manual alignment: MuseScore already exports the position and time of every bar and note in playback order, so Segno never interprets the score itself.
 
-> **Status: early.** The core library (`segno/core`) is ported and tested. The `<segno-player>` web component is next; its API is being settled in the open. Nothing is published to npm yet.
+> **Status: early.** The core library (`segno/core`) is ported and tested. The `<segno-player>` web component is next; its API is agreed in [DL-005](decisions/records/DL-005.md): it follows the `<audio>` element. Nothing is published to npm yet.
 
 ## What's in the box
 
