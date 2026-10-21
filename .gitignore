@@ -3,3 +3,4 @@ dist/
 coverage/
 *.tgz
 .dld-state.yaml.lock
+site/

@@ -39,6 +39,10 @@ The coverage floor only goes up: if your change raises coverage, you may raise t
   // https://github.com/jimutt/segno
   ```
 
+## Previews
+
+Every pull request from a branch of this repository gets a preview of the demo site at `https://jimutt.github.io/segno/pr-preview/pr-<number>/`, linked in a comment on the pull request. Pull requests from forks don't get one yet. Build the demo locally with `npm run build:demo` and open `site/index.html`.
+
 ## Decisions
 
 Design decisions are recorded with [DLD](https://github.com/jimutt/dld-kit) (Decision-Linked Development) in [`decisions/records/`](decisions/INDEX.md), and code links to them with `@decision(DL-NNN)` comments. Before changing code that carries one, read the decision. A change that goes against a decision needs a new decision that supersedes or amends it; propose it in the pull request. AI coding agents (Claude Code, OpenCode) get the DLD skills and rules from `.claude/`, `.agents/` and `AGENTS.md`.

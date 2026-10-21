@@ -48,7 +48,8 @@
     "changeset": "changeset",
     "release": "npm run build && changeset publish",
     "license-headers": "node scripts/check-spdx.mjs",
-    "smoke": "node --input-type=module -e \"import('segno/core').then((m) => { if (typeof m.buildSync !== 'function') process.exit(1); })\""
+    "smoke": "node --input-type=module -e \"import('segno/core').then((m) => { if (typeof m.buildSync !== 'function') process.exit(1); })\"",
+    "build:demo": "node scripts/build-demo.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.6.2",

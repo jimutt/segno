@@ -2,6 +2,7 @@
 
 | ID | Title | Status | Tags |
 |----|-------|--------|------|
+| DL-013 | The demo and pull request previews on GitHub Pages, from a gh-pages branch | accepted | demo, ci |
 | DL-012 | Releases with Changesets and npm trusted publishing | accepted | release, ci |
 | DL-011 | Strict TypeScript, Biome, Vitest with a coverage floor, a size budget, all in CI | accepted | tooling, ci |
 | DL-010 | One ESM package, segno, with subpath exports | accepted | packaging |
