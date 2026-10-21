@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest an idea or an improvement
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you'd like
+      description: How it could work. Alternatives you considered are welcome too.
+  - type: markdown
+    attributes:
+      value: Segno plays engraved pages with their own audio; rendering, editing, transposing and converting scores are out of its scope.

@@ -8,6 +8,8 @@
 | DL-009 | Timeline lookups: the note cursor's motion, the notehead estimate and seeking within repeats | accepted | core, player |
 | DL-008 | No trademark in names; only open-licensed test scores, listed with their sources | accepted | open-source, fixtures |
 | DL-007 | Licensed GPL-3.0-or-later, with readable source and SPDX headers | accepted | licence, open-source |
+| DL-006 | Marker design and default leads | proposed | player, design |
+| DL-005 | `<segno-player>`, a framework-free web component, as the main integration | proposed | player, architecture |
 | DL-004 | A dependency-free core that runs in Node and the browser | accepted | core, architecture |
 | DL-003 | A versioned sync map format with positions as fractions of the page | accepted | format, core |
 | DL-002 | MuseScore's position files are the input, and its unrolled playback order is the truth | accepted | inputs, core |

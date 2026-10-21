@@ -1,0 +1,75 @@
+# Segno
+
+Play a score's own audio on its own engraved pages, and follow along: a marker on the bar being played and a thin cursor that flows from note to note. Built for MuseScore exports.
+
+Web notation libraries draw the score themselves from MusicXML or similar, reflowing it to the screen, which can make a carefully engraved score harder to read. Where they offer playback, it is usually synthesized, or a recording aligned by hand. Segno keeps the pages the engraver set and plays a real recording without manual alignment: MuseScore already exports the position and time of every bar and note in playback order, so Segno never interprets the score itself.
+
+> **Status: early.** The core library (`segno/core`) is ported and tested. The `<segno-player>` web component is next; its API is being settled in the open. Nothing is published to npm yet.
+
+## What's in the box
+
+- **`segno/core`**: a dependency-free library that turns MuseScore's position files into a small _sync map_ and answers "what plays at time t". It has no DOM, so it runs in Node (at build time) and in the browser.
+- **`<segno-player>`** _(coming)_: a framework-free web component that shows the SVG pages, plays the audio and draws the markers. It will work on any site.
+- **`segno build-sync`** _(coming)_: a CLI to build sync maps ahead of time.
+
+Segno does not render, edit, transpose or convert scores.
+
+## Exporting from MuseScore
+
+One MuseScore conversion job writes everything Segno needs from a single score: the audio, one SVG per page, the bar positions (`.mpos`) and, for the note cursor, the note positions (`.spos`).
+
+```sh
+echo '[{"in": "song.mscz", "out": ["song.mp3", "song.svg", "song.mpos", "song.spos"]}]' > job.json
+mscore -j job.json   # song.mp3, song-1.svg, song-2.svg, …, song.mpos, song.spos
+```
+
+(`mscore` stands for MuseScore's executable; its name and path depend on the platform and how MuseScore was installed.)
+
+The files only belong together when they come from the same score and the same settings. Watch for these:
+- **Turn "Play repeats" on** in MuseScore's preferences before exporting (it is on by default). The audio follows that setting, but the position files always unroll the repeats. If the audio ends before the last bar's start time, the two don't match, and `<segno-player>` will play without markers and warn.
+- **Leave the PNG resolution at its default**, and don't pass `-r`. The position files are in SVG units × 12 only at the default resolution. If a bar falls outside its page, the files don't belong together, and `buildSync()` throws.
+- **Export the MP3 first in a job.** MuseScore 4.6 can fail the audio export when it follows an image export.
+- **One input score per job.** Jobs with several input files crash MuseScore 4.7.5.
+- **Headless Linux:** run the AppImage under `xvfb-run`. Its `offscreen` Qt platform plugin did not start in testing.
+
+What was verified, with MuseScore 4.7.5 (Linux build, headless):
+- Repeats, voltas, D.C./D.S., codas and fine come out in playback order: the position writer walks MuseScore's own unrolled repeat list. All 69 scores of MuseScore's repeat test suite (`src/engraving/tests/repeat_data`) matched the expected bar order.
+- Times follow MuseScore's tempo map, ritardandos included.
+- The exported MP3 sounds a constant ~60 ms after the event times (synthesizer latency), with no drift, measured with onset detection against a click track over a 108 s score with repeats and a ritardando.
+
+## Using the core
+
+```sh
+npm install segno
+```
+
+```js
+import { buildSync, createTimeline, readViewBox } from 'segno/core';
+
+// The SVG pages' sizes, in page order
+const pages = svgTexts.map(readViewBox);
+const sync = buildSync(mposXml, pages, { sposXml }); // sposXml is optional: it adds the note cursor
+
+const timeline = createTimeline(sync);
+const now = timeline.at(audio.currentTime * 1000, audio.duration * 1000);
+// { event, bar, page, box: [x, y, w, h], progress, note: { page, x, y, h } | null }
+// Positions are fractions of the page (0–1), so they work at any display size.
+
+timeline.noteAt(ms, endMs); // the note cursor alone
+timeline.barAtPoint(page, fx, fy); // the bar under a click, or -1
+timeline.seekTimeForBar(bar, nowMs); // where to seek to play a bar: inside repeats, the pass nearest nowMs
+```
+
+`buildSync()` throws when a file isn't a positions file, a bar is on a page that wasn't given, a box falls outside its page (the units or the pages don't match), an event names an unknown element, or the times go backwards. The sync map is plain JSON, so it can be built at build time and shipped with the page. Its format is documented in [docs/sync-map.md](docs/sync-map.md).
+
+The ~60 ms latency above, and whatever the listener's audio device adds (Bluetooth adds a lot), means markers that arrive exactly on the event time can feel late. The player will have configurable leads; with the core alone, look up a little ahead of `currentTime`.
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the setup, the checks, and how design decisions are recorded in [`decisions/`](decisions/INDEX.md).
+
+## Licence
+
+Segno is free software under the [GNU General Public License v3.0 or later](LICENSE). A site that serves `<segno-player>` to its visitors distributes it, so the source must be available to them: the published package keeps its source readable and links back to this repository.
+
+"MuseScore" is a trademark of its owners; Segno is not affiliated with MuseScore. Test scores are listed with their sources and licences in [fixtures/SOURCES.md](fixtures/SOURCES.md).
