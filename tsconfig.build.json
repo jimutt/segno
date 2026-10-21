@@ -1,5 +1,5 @@
 // The published build: the core only, readable tsc output with declarations and maps.
-// @decision(DL-010)
+// @decision(DL-010) @decision(DL-004)
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {

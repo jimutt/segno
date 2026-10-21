@@ -1,0 +1,10 @@
+<!-- @decision(DL-008) -->
+# Fixture sources
+
+Every score in this directory is in the public domain or under an open licence. Add a row for each new one: the files, the score, where it comes from, and its licence.
+
+| Files                                                              | Score                                                                                                                                                                                                                                                                                        | Source                                                                                                           | Licence                                                                                                            |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `nar-juldagsmorgon-glimmar.mpos`, `nar-juldagsmorgon-glimmar.spos` | _När juldagsmorgon glimmar_. Text: Betty Ehrenborg (1851); German melody; the setting follows _De Ungas Sångbok_ (1914), no. 35. One A4 page, two staves, a pickup bar, and a repeat of bars 6–11 with a 1st ending (bars 10–11) and a 2nd ending (bars 12–13). Exported with MuseScore 4.7. | Fria Noter, [frianoter.se/noter/nar-juldagsmorgon-glimmar](https://frianoter.se/noter/nar-juldagsmorgon-glimmar) | [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (the engraving); the song itself is in the public domain |
+
+Attribution for the files above: "Fria Noter, frianoter.se, CC BY 4.0".

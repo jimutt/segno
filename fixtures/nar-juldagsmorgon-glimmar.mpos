@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<score>
+  <elements>
+    <element id="0" x="13464.5" y="26393.2" sx="16788.6" sy="24486.9" page="0">
+      </element>
+    <element id="1" x="30253.1" y="26393.2" sx="19900.1" sy="24486.9" page="0">
+      </element>
+    <element id="2" x="50153.2" y="26393.2" sx="18001" sy="24486.9" page="0">
+      </element>
+    <element id="3" x="68154.1" y="26393.2" sx="21481.4" sy="24486.9" page="0">
+      </element>
+    <element id="4" x="89635.6" y="26393.2" sx="12864.3" sy="24486.9" page="0">
+      </element>
+    <element id="5" x="102500" y="26393.2" sx="8051.35" sy="24486.9" page="0">
+      </element>
+    <element id="6" x="8503.91" y="82628.1" sx="27173.3" sy="24438.9" page="0">
+      </element>
+    <element id="7" x="35677.2" y="82628.1" sx="18520.1" sy="24438.9" page="0">
+      </element>
+    <element id="8" x="54197.3" y="82628.1" sx="10275.7" sy="24438.9" page="0">
+      </element>
+    <element id="9" x="64472.9" y="82628.1" sx="10159.4" sy="24438.9" page="0">
+      </element>
+    <element id="10" x="74632.3" y="82628.1" sx="13544.9" sy="24438.9" page="0">
+      </element>
+    <element id="11" x="88177.2" y="82628.1" sx="9609.03" sy="24438.9" page="0">
+      </element>
+    <element id="12" x="97786.2" y="82628.1" sx="12765" sy="24438.9" page="0">
+      </element>
+    </elements>
+  <events>
+    <event elid="0" position="0">
+      </event>
+    <event elid="1" position="522">
+      </event>
+    <event elid="2" position="2609">
+      </event>
+    <event elid="3" position="4696">
+      </event>
+    <event elid="4" position="6783">
+      </event>
+    <event elid="5" position="8348">
+      </event>
+    <event elid="6" position="8870">
+      </event>
+    <event elid="7" position="10957">
+      </event>
+    <event elid="8" position="13043">
+      </event>
+    <event elid="9" position="14087">
+      </event>
+    <event elid="10" position="15130">
+      </event>
+    <event elid="5" position="16696">
+      </event>
+    <event elid="6" position="17217">
+      </event>
+    <event elid="7" position="19304">
+      </event>
+    <event elid="8" position="21391">
+      </event>
+    <event elid="11" position="22435">
+      </event>
+    <event elid="12" position="23478">
+      </event>
+    </events>
+  </score>
