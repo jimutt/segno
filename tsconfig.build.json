@@ -1,0 +1,17 @@
+// The published build: the core only, readable tsc output with declarations and maps.
+// @decision(DL-010)
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": [],
+    "lib": ["es2023"],
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  },
+  "include": ["src/core"],
+  "exclude": ["src/**/*.test.ts"]
+}
