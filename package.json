@@ -2,7 +2,7 @@
   "name": "segno",
   "version": "0.0.0",
   "description": "Play a score's own audio on its own engraved pages, following the bar and the notes. For MuseScore exports.",
-  "license": "GPL-3.0-or-later",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jimutt/segno.git"
