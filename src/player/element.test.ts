@@ -107,7 +107,7 @@ describe('markers', () => {
   test('moves to the bar being played and fires barchange, for every pass through a repeat', async () => {
     const player = await ready();
     const changes: BarChangeDetail[] = [];
-    player.addEventListener('barchange', (e) => changes.push((e as CustomEvent<BarChangeDetail>).detail));
+    player.addEventListener('barchange', (e) => changes.push(e.detail));
     await seek(player, startOf(player, 6) + 0.1);
     expect(player.currentBar).toBe(6);
     await seek(player, startOf(player, 12) + 0.1);
@@ -159,6 +159,8 @@ describe('falling back to plain playback', () => {
   test('when the audio ends before the last bar starts', async () => {
     const player = await ready({ audio: silentAudio(5) });
     expect(player.currentBar).toBe(-1);
+    expect(player.sync).toBeNull();
+    await expect(player.playBar(0)).rejects.toThrow('no markers');
     expect(shadow(player).querySelector('.bar-marker.on:not([hidden])')).toBeNull();
     expect(warn).toHaveBeenCalledWith(expect.stringMatching(/ends before the last bar starts.*Play repeats/));
     query(player, '.pages').dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
@@ -176,7 +178,15 @@ describe('falling back to plain playback', () => {
     player.sync = { v: 1, bars: [[1, 0.1, 0.2, 0.3, 0.1]], events: [[0, 0]] };
     await next(player, 'canplay');
     expect(player.sync).toBeNull();
-    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/pages the player wasn't given/));
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/positions on pages the player wasn't given/));
+  });
+
+  test('when a sync map is malformed, and canplay still fires', async () => {
+    const player = mount({ pages: blankPage(), audio: silentAudio(5) });
+    player.sync = { v: 1, bars: [], events: [null] } as unknown as SyncMap;
+    await next(player, 'canplay');
+    expect(player.sync).toBeNull();
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/\[index, ms\] pairs/));
   });
 
   test('when a sync map has an unknown version', async () => {
@@ -217,21 +227,76 @@ describe('the media element API', () => {
     await expect(player.playBar(99)).rejects.toThrow(RangeError);
   });
 
-  test('pauses when removed from the page', async () => {
+  test('pauses when removed from the page, and keeps its place when put back', async () => {
     const player = await ready();
+    await seek(player, 10);
     await player.play();
+    const fetches = vi.spyOn(window, 'fetch');
     player.remove();
     expect(player.paused).toBe(true);
+    document.body.append(player);
+    await Promise.resolve();
+    expect(player.currentTime).toBeGreaterThanOrEqual(10);
+    expect(fetches).not.toHaveBeenCalled();
+    expect(player.currentBar).toBeGreaterThan(0);
+  });
+
+  test('loads again when put back after being removed mid-load', async () => {
+    const player = mount({ pages: blankPage(), audio: silentAudio(30), positions: fixture.mpos });
+    await Promise.resolve();
+    player.remove();
+    document.body.append(player);
+    await next(player, 'canplay');
+    expect(player.sync?.bars).toHaveLength(13);
+  });
+
+  test('a new audio source stops playback and keeps the tempo', async () => {
+    const player = await ready({ controls: true });
+    player.playbackRate = 0.8;
+    await player.play();
+    const emptied = next(player, 'emptied');
+    player.setAttribute('audio', silentAudio(30));
+    await emptied;
+    expect(player.paused).toBe(true);
+    expect(player.playbackRate).toBe(0.8);
+    expect(query(player, '.play').getAttribute('aria-label')).toBe('Play');
+  });
+
+  test('an element upgraded with its attributes loads its audio once', async () => {
+    const load = vi.spyOn(HTMLMediaElement.prototype, 'load');
+    const host = document.createElement('div');
+    host.innerHTML = `<segno-player pages="${blankPage()}" audio="${silentAudio(30)}" positions="${fixture.mpos}"></segno-player>`;
+    document.body.append(host);
+    const player = host.querySelector('segno-player');
+    if (!player) throw new Error('No player');
+    await next(player, 'canplay');
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
+  test('an invalid URL does not break the element', async () => {
+    const player = mount({ pages: 'http://[bad', audio: silentAudio(30), positions: fixture.mpos });
+    await next(player, 'canplay');
+    expect(player.sync).toBeNull();
+    expect(shadow(player).querySelectorAll('img')).toHaveLength(1);
+  });
+
+  test('changing a lead moves the markers at once', async () => {
+    const player = await ready();
+    await seek(player, startOf(player, 3) - 0.1);
+    expect(player.currentBar).toBe(2);
+    player.setAttribute('bar-lead', '200');
+    expect(player.currentBar).toBe(3);
   });
 });
 
 describe('interaction', () => {
-  test('clicking a bar seeks to it', async () => {
+  test('clicking a bar plays from it', async () => {
     const player = await ready();
     const [, x, y, w, h] = syncOf(player).bars[4] ?? [];
     const overlay = query(player, '.overlay');
     const rect = overlay.getBoundingClientRect();
     const seeked = next(player, 'seeked');
+    const playing = next(player, 'play');
     overlay.dispatchEvent(
       new MouseEvent('click', {
         bubbles: true,
@@ -240,8 +305,9 @@ describe('interaction', () => {
         clientY: rect.top + ((y ?? 0) + (h ?? 0) / 2) * rect.height,
       }),
     );
-    await seeked;
+    await Promise.all([seeked, playing]);
     expect(player.currentBar).toBe(4);
+    player.pause();
     const time = player.currentTime;
     overlay.dispatchEvent(
       new MouseEvent('click', { bubbles: true, composed: true, clientX: rect.left + 1, clientY: rect.top + 1 }),
@@ -271,6 +337,46 @@ describe('interaction', () => {
     key('Home');
     expect(player.currentTime).toBe(0);
     expect(key('x').defaultPrevented).toBe(false);
+  });
+
+  test('→ stays on the last bar, and modified keys are left to the browser', async () => {
+    const player = await ready();
+    const pages = query(player, '.pages');
+    const last = syncOf(player).events.length - 1;
+    await seek(player, startOf(player, last) + 0.2);
+    pages.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    expect(player.currentTime).toBeCloseTo(startOf(player, last), 3);
+    const back = new KeyboardEvent('keydown', { key: 'ArrowLeft', altKey: true, cancelable: true });
+    pages.dispatchEvent(back);
+    expect(back.defaultPrevented).toBe(false);
+    pages.dispatchEvent(new KeyboardEvent('keydown', { key: 'K', repeat: true }));
+    expect(player.paused).toBe(true);
+    const playing = next(player, 'play');
+    pages.dispatchEvent(new KeyboardEvent('keydown', { key: 'K' }));
+    await playing;
+    player.pause();
+  });
+
+  test('→ moves on from a bar whose start the audio rounds down', async () => {
+    const player = mount({ pages: blankPage(), audio: silentAudio(5) });
+    player.sync = {
+      v: 1,
+      bars: [0.1, 0.3, 0.5].map((x): [number, number, number, number, number] => [0, x, 0.1, 0.2, 0.1]),
+      events: [
+        [0, 0],
+        [1, 1001],
+        [2, 2003],
+      ],
+    };
+    await next(player, 'canplay');
+    const pages = query(player, '.pages');
+    const times: number[] = [];
+    for (let i = 0; i < 2; i++) {
+      pages.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+      times.push(player.currentTime);
+    }
+    expect(times[0]).toBeCloseTo(1.001, 3);
+    expect(times[1]).toBeCloseTo(2.003, 3);
   });
 
   test('without markers, the arrow keys move five seconds', async () => {
@@ -334,7 +440,7 @@ describe('controls', () => {
     expect(tempo.value).toBe('1.5');
     player.playbackRate = 1.25;
     await next(player, 'ratechange');
-    expect(tempo.value).toBe('1.5');
+    expect(tempo.selectedIndex).toBe(-1);
   });
 
   test('a site’s own controls replace the built-in ones', async () => {

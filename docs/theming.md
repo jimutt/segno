@@ -81,7 +81,7 @@ segno-player::part(controls-area) {
 
 ## Container queries
 
-The player is a size container named `segno-player`: its built-in controls lay out by the player's own width, wrapping onto two lines below 28rem. A site can do the same around the player with its own containers:
+The player is a size container named `segno-player`: its built-in controls lay out by the player's own width, wrapping onto two lines below 28rem. A size container doesn't take its width from its content, so in a layout that sizes elements to their content (an inline block, a flex row, an `auto` grid column) give the player a width, `width: 100%` or `flex: 1`, or it collapses to nothing. A site can do the same around the player with its own containers:
 
 ```css
 .sidebar {

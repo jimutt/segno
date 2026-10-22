@@ -33,6 +33,7 @@ const MEDIA_EVENTS = [
   'ratechange',
   'durationchange',
   'loadedmetadata',
+  'emptied',
   'ended',
   'error',
 ] as const;
@@ -42,6 +43,8 @@ const MEDIA_EVENTS = [
 const BAR_OVERLAP = 0.012;
 const DEFAULT_BAR_LEAD = 20;
 const DEFAULT_NOTE_LEAD = 0;
+/** Seeks round a bar's start to the audio's precision; look up events this far ahead so a seek lands in its bar */
+const SEEK_TOLERANCE_MS = 1;
 
 const percent = (fraction: number): string => `${(fraction * 100).toFixed(4)}%`;
 
@@ -50,13 +53,26 @@ function numberAttribute(value: string | null, fallback: number): number {
   return Number.isFinite(n) ? n : fallback;
 }
 
+// Importing the player where there is no DOM (server rendering, build scripts) defines nothing and throws nothing
+const Base = (globalThis.HTMLElement ?? class {}) as typeof HTMLElement;
+
 /**
  * `<segno-player>`: plays a score's audio on its engraved SVG pages, with a marker on the bar being played and a
  * cursor that flows from note to note. Its playback API follows `HTMLMediaElement`.
  * @decision(DL-005) @decision(DL-014) @decision(DL-017)
  */
-export class SegnoPlayer extends HTMLElement {
-  static readonly observedAttributes = ['pages', 'audio', 'positions', 'notes', 'sync', 'alt', 'note-cursor'];
+export class SegnoPlayer extends Base {
+  static readonly observedAttributes = [
+    'pages',
+    'audio',
+    'positions',
+    'notes',
+    'sync',
+    'alt',
+    'note-cursor',
+    'bar-lead',
+    'note-lead',
+  ];
 
   readonly #audio = document.createElement('audio');
   readonly #pagesEl = document.createElement('div');
@@ -65,6 +81,11 @@ export class SegnoPlayer extends HTMLElement {
   readonly #cursor = document.createElement('div');
   #pages: Page[] = [];
   #activeMarker = 0;
+
+  // What was last applied, so that moving the element or upgrading it redoes only what changed
+  #appliedPages: string | null = null;
+  #appliedAudio: string | null = null;
+  #appliedLoad: string | null = null;
 
   #syncProperty: SyncMap | null = null;
   #sync: SyncMap | null = null;
@@ -91,6 +112,7 @@ export class SegnoPlayer extends HTMLElement {
     this.#pagesEl.tabIndex = 0;
     this.#pagesEl.setAttribute('role', 'group');
     this.#pagesEl.setAttribute('aria-label', 'Score');
+    this.#pagesEl.setAttribute('aria-keyshortcuts', 'Space K ArrowLeft ArrowRight Home');
     this.#pagesEl.addEventListener('click', (e) => this.#onClick(e));
     this.#pagesEl.addEventListener('keydown', (e) => this.#onKey(e));
 
@@ -121,6 +143,7 @@ export class SegnoPlayer extends HTMLElement {
 
     const audio = this.#audio;
     audio.preload = 'metadata';
+    audio.preservesPitch = true;
     audio.addEventListener('canplay', () => {
       this.#audioReady = true;
       this.#maybeCanPlay();
@@ -131,6 +154,11 @@ export class SegnoPlayer extends HTMLElement {
       this.#stopLoop();
       this.#update();
       this.#announce();
+    });
+    // A new source stops playback without a pause event
+    audio.addEventListener('emptied', () => {
+      this.#stopLoop();
+      this.#update();
     });
     audio.addEventListener('seeked', () => {
       this.#update();
@@ -144,23 +172,27 @@ export class SegnoPlayer extends HTMLElement {
   }
 
   connectedCallback(): void {
-    this.#renderPages();
-    this.#setAudioSource();
-    this.#queueLoad();
+    this.#apply();
   }
 
   disconnectedCallback(): void {
     this.#audio.pause();
     this.#stopLoop();
+    if (!this.#loadSettled) {
+      // Load again when connected again
+      this.#load?.abort();
+      this.#appliedLoad = null;
+    }
   }
+
+  /** Moving the element with `moveBefore()` keeps it playing */
+  connectedMoveCallback(): void {}
 
   attributeChangedCallback(name: string, previous: string | null, value: string | null): void {
     if (!this.isConnected || previous === value) return;
-    if (name === 'pages') this.#renderPages();
-    if (name === 'audio') this.#setAudioSource();
     if (name === 'alt') this.#updateAlt();
-    if (name === 'note-cursor') this.#update();
-    if (name === 'pages' || name === 'positions' || name === 'notes' || name === 'sync') this.#queueLoad();
+    else if (name === 'note-cursor' || name === 'bar-lead' || name === 'note-lead') this.#update();
+    else this.#apply();
   }
 
   // The media element API
@@ -181,7 +213,8 @@ export class SegnoPlayer extends HTMLElement {
     return this.#audio.playbackRate;
   }
   set playbackRate(rate: number) {
-    this.#audio.preservesPitch = true;
+    // The default rate survives a new audio source
+    this.#audio.defaultPlaybackRate = rate;
     this.#audio.playbackRate = rate;
   }
   /** The audio's error, as on a media element */
@@ -202,21 +235,52 @@ export class SegnoPlayer extends HTMLElement {
     return this.#bar;
   }
 
-  /** The sync map in use: the one set on this property, or the one loaded from the attributes */
+  /**
+   * The sync map in use: the one set on this property, or the one loaded from the attributes. null while there
+   * are no markers: before it has loaded, when it failed, or when the audio is too short for it.
+   */
   get sync(): SyncMap | null {
-    return this.#sync;
+    return this.#markersOn() ? this.#sync : null;
   }
   set sync(map: SyncMap | null) {
     this.#syncProperty = map;
-    this.#queueLoad();
+    this.#appliedLoad = null;
+    this.#apply();
   }
 
   /** Plays from a bar; inside repeats, from the pass nearest the current position. */
   playBar(bar: number): Promise<void> {
-    const ms = this.#timeline?.seekTimeForBar(bar, this.currentTime * 1000) ?? -1;
+    const timeline = this.#markersOn();
+    if (!timeline) return Promise.reject(new Error('There are no markers to play a bar by'));
+    const ms = timeline.seekTimeForBar(bar, this.currentTime * 1000);
     if (ms < 0) return Promise.reject(new RangeError(`Bar ${bar} is never played`));
     this.currentTime = ms / 1000;
     return this.play();
+  }
+
+  /** The timeline, when the markers are on */
+  #markersOn(): Timeline | null {
+    return this.#audioTooShort ? null : this.#timeline;
+  }
+
+  // Applying the attributes
+
+  #apply(): void {
+    const pages = this.getAttribute('pages') ?? '';
+    if (pages !== this.#appliedPages) {
+      this.#appliedPages = pages;
+      this.#renderPages();
+    }
+    const audio = this.getAttribute('audio');
+    if (audio !== this.#appliedAudio) {
+      this.#appliedAudio = audio;
+      this.#setAudioSource(audio);
+    }
+    const load = JSON.stringify([pages, ...['positions', 'notes', 'sync'].map((a) => this.getAttribute(a))]);
+    if (load !== this.#appliedLoad) {
+      this.#appliedLoad = load;
+      this.#queueLoad();
+    }
   }
 
   // Pages
@@ -237,7 +301,7 @@ export class SegnoPlayer extends HTMLElement {
       const image = document.createElement('img');
       image.setAttribute('part', 'page-image');
       image.decoding = 'async';
-      image.src = new URL(url, document.baseURI).href;
+      image.src = url;
       const overlay = document.createElement('div');
       overlay.className = 'overlay';
       page.append(image, overlay);
@@ -266,18 +330,18 @@ export class SegnoPlayer extends HTMLElement {
 
   // Loading
 
-  #setAudioSource(): void {
-    const src = this.getAttribute('audio');
+  #setAudioSource(src: string | null): void {
+    this.#stopLoop();
     this.#audioReady = false;
     this.#canplayFired = false;
     this.#audioTooShort = false;
-    if (src) this.#audio.src = new URL(src, document.baseURI).href;
+    if (src) this.#audio.src = src;
     else this.#audio.removeAttribute('src');
     this.#audio.load();
   }
 
   #queueLoad(): void {
-    if (this.#loadQueued || !this.isConnected) return;
+    if (this.#loadQueued) return;
     this.#loadQueued = true;
     queueMicrotask(() => {
       this.#loadQueued = false;
@@ -291,8 +355,9 @@ export class SegnoPlayer extends HTMLElement {
     this.#load = load;
     this.#loadSettled = false;
     this.#canplayFired = false;
-    this.#setSync(null);
+    this.#setTimeline(null, null);
     let sync: SyncMap | null = null;
+    let timeline: Timeline | null = null;
     try {
       if (this.#syncProperty) {
         sync = checkSyncMap(this.#syncProperty);
@@ -312,27 +377,28 @@ export class SegnoPlayer extends HTMLElement {
         sync = result.sync;
       }
       const pages = this.#pages.length;
-      if (sync?.bars.some(([page]) => page >= pages)) {
-        throw new Error(`The sync map has bars on pages the player wasn't given (${pages} pages)`);
+      if (sync && [...sync.bars, ...(sync.notes ?? [])].some(([page]) => page >= pages)) {
+        throw new Error(`The sync map has positions on pages the player wasn't given (${pages} pages)`);
       }
+      timeline = sync ? createTimeline(sync) : null;
     } catch (error) {
       if (load.signal.aborted) return;
       this.#warn(`Playing without markers: ${error instanceof Error ? error.message : String(error)}`);
       sync = null;
+      timeline = null;
     }
-    this.#setSync(sync);
+    this.#setTimeline(sync, timeline);
     this.#loadSettled = true;
     this.#maybeCanPlay();
   }
 
-  #setSync(sync: SyncMap | null): void {
+  #setTimeline(sync: SyncMap | null, timeline: Timeline | null): void {
     this.#sync = sync;
-    this.#timeline = sync ? createTimeline(sync) : null;
+    this.#timeline = timeline;
     this.#lastEventMs = sync?.events.at(-1)?.[1] ?? 0;
     this.#event = -1;
     this.#bar = -1;
     this.#checkAudioLength();
-    this.#update();
   }
 
   #checkAudioLength(): void {
@@ -377,7 +443,7 @@ export class SegnoPlayer extends HTMLElement {
 
   /** Moves the markers to where the audio is */
   #update(): void {
-    const timeline = this.#audioTooShort ? null : this.#timeline;
+    const timeline = this.#markersOn();
     this.#pagesEl.toggleAttribute('data-markers', timeline !== null);
     if (!timeline) {
       for (const el of [...this.#markers, this.#cursor]) el.hidden = true;
@@ -448,43 +514,48 @@ export class SegnoPlayer extends HTMLElement {
 
   // Interaction
 
+  /** Clicking a bar plays from it */
   #onClick(event: MouseEvent): void {
-    const timeline = this.#timeline;
+    const timeline = this.#markersOn();
     const index = this.#pages.findIndex(({ page }) => event.composedPath().includes(page));
     const page = this.#pages[index];
-    if (!timeline || !page || this.#audioTooShort) return;
+    if (!timeline || !page) return;
     const rect = page.overlay.getBoundingClientRect();
     const bar = timeline.barAtPoint(
       index,
       (event.clientX - rect.left) / rect.width,
       (event.clientY - rect.top) / rect.height,
     );
-    const ms = bar < 0 ? -1 : timeline.seekTimeForBar(bar, this.currentTime * 1000);
-    if (ms >= 0) this.currentTime = ms / 1000;
+    if (bar >= 0) this.playBar(bar).catch(() => {});
   }
 
   // @decision(DL-016)
   #onKey(event: KeyboardEvent): void {
-    const timeline = this.#audioTooShort ? null : this.#timeline;
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    const timeline = this.#markersOn();
+    // The event playing, looked up a little ahead so that a seek to an event's start counts as that event
+    const current = (): number => timeline?.eventIndexAt(this.currentTime * 1000 + SEEK_TOLERANCE_MS) ?? -1;
     const seekToEvent = (i: number): void => {
-      const event = timeline?.events[Math.max(0, i)];
-      this.currentTime = event ? event[1] / 1000 : 0;
+      const target = timeline?.events[Math.min(Math.max(0, i), timeline.events.length - 1)];
+      if (target) this.currentTime = target[1] / 1000;
     };
-    switch (event.key) {
+    switch (event.key.toLowerCase()) {
       case ' ':
       case 'k':
-        if (this.paused) this.play().catch(() => {});
-        else this.pause();
+        if (!event.repeat) {
+          if (this.paused) this.play().catch(() => {});
+          else this.pause();
+        }
         break;
-      case 'ArrowRight':
-        if (timeline) seekToEvent(timeline.eventIndexAt(this.currentTime * 1000) + 1);
+      case 'arrowright':
+        if (timeline) seekToEvent(current() + 1);
         else this.currentTime += 5;
         break;
-      case 'ArrowLeft':
-        if (timeline) seekToEvent(timeline.eventIndexAt(this.currentTime * 1000) - 1);
+      case 'arrowleft':
+        if (timeline) seekToEvent(current() - 1);
         else this.currentTime = Math.max(0, this.currentTime - 5);
         break;
-      case 'Home':
+      case 'home':
         this.currentTime = 0;
         break;
       default:
@@ -495,13 +566,17 @@ export class SegnoPlayer extends HTMLElement {
 
   /** Tells screen readers where playback is: on pause and after seeking, never during playback */
   #announce(): void {
-    if (this.#bar < 0 || !this.#timeline) return;
-    this.#live.textContent = `Bar ${this.#bar + 1} of ${this.#timeline.bars.length}`;
+    const timeline = this.#markersOn();
+    if (this.#bar < 0 || !timeline) return;
+    this.#live.textContent = `Bar ${this.#bar + 1} of ${timeline.bars.length}`;
   }
 }
 
 declare global {
   interface HTMLElementTagNameMap {
     'segno-player': SegnoPlayer;
+  }
+  interface HTMLElementEventMap {
+    barchange: CustomEvent<BarChangeDetail>;
   }
 }

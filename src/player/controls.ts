@@ -83,10 +83,11 @@ export function createControls(player: Playable): HTMLElement {
   };
   const showRate = (): void => {
     const value = String(player.playbackRate);
-    if ([...tempo.options].some((o) => o.value === value)) tempo.value = value;
+    // A rate the list doesn't have shows as none of them
+    tempo.selectedIndex = [...tempo.options].findIndex((o) => o.value === value);
   };
-  for (const type of ['play', 'pause', 'ended']) player.addEventListener(type, showState);
-  for (const type of ['timeupdate', 'durationchange', 'seeked']) player.addEventListener(type, showTime);
+  for (const type of ['play', 'pause', 'ended', 'emptied']) player.addEventListener(type, showState);
+  for (const type of ['timeupdate', 'durationchange', 'seeked', 'emptied']) player.addEventListener(type, showTime);
   player.addEventListener('ratechange', showRate);
   showState();
   showTime();

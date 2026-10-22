@@ -21,7 +21,31 @@ describe('checkSyncMap', () => {
     expect(() => checkSyncMap(null)).toThrow('must be an object');
     expect(() => checkSyncMap('{}')).toThrow('must be an object');
     expect(() => checkSyncMap({ v: 2, bars: [], events: [] })).toThrow('Unknown sync map version 2');
-    expect(() => checkSyncMap({ v: 1, bars: [] })).toThrow('needs bars and events');
+    expect(() => checkSyncMap({ v: 1, bars: [] })).toThrow('needs bars and their events');
+  });
+
+  test('rejects entries of the wrong shape', () => {
+    const bars = [[0, 0.1, 0.1, 0.2, 0.1]];
+    expect(() => checkSyncMap({ v: 1, bars, events: [null] })).toThrow('[index, ms] pairs');
+    expect(() => checkSyncMap({ v: 1, bars, events: [[1, 0]] })).toThrow('[index, ms] pairs');
+    expect(() =>
+      checkSyncMap({
+        v: 1,
+        bars,
+        events: [
+          [0, 5],
+          [0, 4],
+        ],
+      }),
+    ).toThrow('in time order');
+    expect(() => checkSyncMap({ v: 1, bars: [[0, 0.1]], events: [] })).toThrow('arrays of 5 numbers');
+    expect(() => checkSyncMap({ v: 1, bars: [[-1, 0.1, 0.1, 0.2, 0.1]], events: [] })).toThrow('arrays of 5 numbers');
+    expect(() => checkSyncMap({ v: 1, bars, events: [[0, 0]], notes: [[0, 0.1, 0.1]], noteEvents: [] })).toThrow(
+      'arrays of 4 numbers',
+    );
+    expect(() => checkSyncMap({ v: 1, bars, events: [[0, 0]], notes: [] })).toThrow('needs notes and their events');
+    const withNotes = { v: 1, bars, events: [[0, 0]], notes: [[0, 0.2, 0.1, 0.1]], noteEvents: [[0, 0]] };
+    expect(checkSyncMap(withNotes)).toBe(withNotes);
   });
 });
 

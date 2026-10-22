@@ -54,7 +54,9 @@ What was verified, with MuseScore 4.7.5 (Linux build, headless):
 </segno-player>
 ```
 
-With a bundler, `import 'segno/player'` defines the element. The modules are plain ES modules, so a CDN serves them as they are.
+With a bundler, `import 'segno/player'` defines the element. The modules are plain ES modules, so a CDN serves them as they are. Importing them where there is no DOM (server rendering) is harmless: the element is only defined in the browser.
+
+The player takes the width it is given: in a layout that sizes elements to their content (an inline block, a flex row), give it a width or `flex: 1`.
 
 | Attribute                                |                                                                                            |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -68,7 +70,7 @@ With a bundler, `import 'segno/player'` defines the element. The modules are pla
 | `bar-lead`, `note-lead`                  | How many ms early the bar marker and the note cursor move (default 20 and 0)               |
 | `note-cursor="off"`, `bar-change="jump"` | No note cursor; switch bars at once instead of crossfading                                 |
 
-The playback API follows `HTMLMediaElement`: `play()`, `pause()`, `currentTime` (seconds), `duration`, `playbackRate` (pitch preserved), `paused`, `error`, and the events `play`, `pause`, `playing`, `waiting`, `seeking`, `seeked`, `timeupdate`, `ratechange`, `durationchange`, `loadedmetadata`, `ended`, `error` and `canplay` (once the audio can play and the markers are ready). On top of that: `currentBar`, `playBar(index)` and the `barchange` event (`detail: { bar, event }`).
+The playback API follows `HTMLMediaElement`: `play()`, `pause()`, `currentTime` (seconds), `duration`, `playbackRate` (pitch preserved), `paused`, `error`, and the events `play`, `pause`, `playing`, `waiting`, `seeking`, `seeked`, `timeupdate`, `ratechange`, `durationchange`, `loadedmetadata`, `emptied`, `ended`, `error` and `canplay` (once the audio can play and the markers are ready). On top of that: `currentBar`, `playBar(index)` and the `barchange` event (`detail: { bar, event }`). `sync` holds the sync map in use, or `null` while there are no markers.
 
 Clicking a bar plays from it. On the focused score, Space or K plays and pauses, ← and → move between bars, and Home goes to the start.
 
@@ -101,7 +103,7 @@ timeline.seekTimeForBar(bar, nowMs); // where to seek to play a bar: inside repe
 
 `buildSync()` throws when a file isn't a positions file, a bar is on a page that wasn't given, a box falls outside its page (the units or the pages don't match), an event names an unknown element, or the times go backwards. The sync map is plain JSON, so it can be built at build time and shipped with the page. Its format is documented in [docs/sync-map.md](docs/sync-map.md).
 
-The ~60 ms latency above, and whatever the listener's audio device adds (Bluetooth adds a lot), means markers that arrive exactly on the event time can feel late. The player will have configurable leads; with the core alone, look up a little ahead of `currentTime`.
+The ~60 ms latency above, and whatever the listener's audio device adds (Bluetooth adds a lot), means markers that arrive exactly on the event time can feel late. The player's `bar-lead` and `note-lead` attributes move its markers early; with the core alone, look up a little ahead of `currentTime`.
 
 ## Contributing
 

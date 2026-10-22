@@ -27,8 +27,28 @@ async function fetchText(url: string, base: string, signal: AbortSignal): Promis
   return response.text();
 }
 
+const isIndex = (n: unknown, length: number): boolean =>
+  Number.isInteger(n) && (n as number) >= 0 && (n as number) < length;
+const isNumbers = (entry: unknown, length: number): entry is number[] =>
+  Array.isArray(entry) && entry.length === length && entry.every(Number.isFinite);
+
+// Positions as [page, ...fractions] and events as [index, ms] into them, in time order
+function checkPositions(positions: unknown, events: unknown, size: number, what: string): void {
+  if (!Array.isArray(positions) || !Array.isArray(events)) throw new Error(`A sync map needs ${what} and their events`);
+  if (!positions.every((p) => isNumbers(p, size) && isIndex(p[0], Number.POSITIVE_INFINITY))) {
+    throw new Error(`The sync map's ${what} must be [page, …] arrays of ${size} numbers`);
+  }
+  let previous = Number.NEGATIVE_INFINITY;
+  for (const event of events) {
+    if (!isNumbers(event, 2) || !isIndex(event[0], positions.length) || (event[1] ?? 0) < previous) {
+      throw new Error(`The sync map's ${what} events must be [index, ms] pairs in time order`);
+    }
+    previous = event[1] ?? 0;
+  }
+}
+
 /**
- * Checks that a value is a sync map this version of Segno can read.
+ * Checks that a value is a sync map this version of Segno can read: its version, and the shape of its entries.
  * @decision(DL-003)
  * @throws when it isn't
  */
@@ -36,7 +56,8 @@ export function checkSyncMap(value: unknown): SyncMap {
   const map = value as Partial<SyncMap> | null;
   if (typeof map !== 'object' || map === null) throw new Error('A sync map must be an object');
   if (map.v !== 1) throw new Error(`Unknown sync map version ${String(map.v)}; this version of Segno reads version 1`);
-  if (!Array.isArray(map.bars) || !Array.isArray(map.events)) throw new Error('A sync map needs bars and events');
+  checkPositions(map.bars, map.events, 5, 'bars');
+  if (map.notes !== undefined || map.noteEvents !== undefined) checkPositions(map.notes, map.noteEvents, 4, 'notes');
   return map as SyncMap;
 }
 

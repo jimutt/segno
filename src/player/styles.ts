@@ -100,7 +100,6 @@ export const css = /* css */ `
   position: sticky;
   bottom: 0.75rem;
   z-index: 1;
-  margin-top: 0.75rem;
 }
 :host(:not([controls])) .controls {
   display: none;
@@ -108,6 +107,7 @@ export const css = /* css */ `
 .controls {
   display: flex;
   align-items: center;
+  margin-top: 0.75rem;
   gap: var(--segno-controls-gap, 0.5rem);
   padding: 0.5rem 0.75rem;
   border-radius: var(--segno-controls-radius, 0.75rem);

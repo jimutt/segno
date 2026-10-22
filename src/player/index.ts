@@ -3,13 +3,16 @@
 // https://github.com/jimutt/segno
 
 /**
- * `<segno-player>`. Importing this module defines the element (once).
+ * `<segno-player>`. Importing this module defines the element (once, and only where there is a DOM).
  * @decision(DL-018)
  * @module
  */
 
 import { SegnoPlayer } from './element.js';
 
-if (!customElements.get('segno-player')) customElements.define('segno-player', SegnoPlayer);
+// Without a DOM (server rendering, build scripts) importing it does nothing
+if (globalThis.customElements && !customElements.get('segno-player')) {
+  customElements.define('segno-player', SegnoPlayer);
+}
 
 export { type BarChangeDetail, SegnoPlayer } from './element.js';

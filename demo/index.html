@@ -141,6 +141,7 @@
         const missing = [!pages.length && 'the SVG pages', !audio && 'the audio', !positions && 'the .mpos file'].filter(Boolean);
         if (missing.length) {
           status.textContent = `Missing ${missing.join(', ')}.`;
+          player.pause();
           player.hidden = true;
           return;
         }
@@ -152,6 +153,10 @@
         if (notes) player.setAttribute('notes', url(notes));
         else player.removeAttribute('notes');
         player.hidden = false;
+      });
+
+      player.addEventListener('error', () => {
+        status.textContent = 'The browser can’t play this audio file. MP3 works everywhere.';
       });
 
       player.addEventListener('canplay', () => {
