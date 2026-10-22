@@ -413,7 +413,8 @@ describe('controls', () => {
     const player = await ready({ controls: true });
     const button = query<HTMLButtonElement>(player, '.play');
     expect(button.getAttribute('aria-label')).toBe('Play');
-    expect(query(player, '.time').textContent).toBe('0:00 / 0:30');
+    expect(query(player, '.elapsed').textContent).toBe('0:00');
+    expect(query(player, '.duration').textContent).toBe('0:30');
     const playing = next(player, 'play');
     button.click();
     await playing;
@@ -428,19 +429,159 @@ describe('controls', () => {
     range.dispatchEvent(new Event('input'));
     await seeked;
     expect(player.currentTime).toBe(12);
-    expect(query(player, '.time').textContent).toBe('0:12 / 0:30');
+    expect(query(player, '.elapsed').textContent).toBe('0:12');
     expect(range.getAttribute('aria-valuetext')).toBe('0:12 of 0:30');
 
-    const tempo = query<HTMLSelectElement>(player, '.tempo');
-    tempo.value = '0.8';
-    tempo.dispatchEvent(new Event('change'));
+    const slower = query<HTMLButtonElement>(player, '[part="tempo-decrease"]');
+    const faster = query<HTMLButtonElement>(player, '[part="tempo-increase"]');
+    slower.click();
+    await next(player, 'ratechange');
+    slower.click();
+    await next(player, 'ratechange');
     expect(player.playbackRate).toBe(0.8);
     player.playbackRate = 1.5;
     await next(player, 'ratechange');
-    expect(tempo.value).toBe('1.5');
+    expect(query(player, '.tempo-value').textContent).toBe('150%');
+    expect(faster.disabled).toBe(true);
+    faster.click();
+    expect(player.playbackRate).toBe(1.5);
     player.playbackRate = 1.25;
     await next(player, 'ratechange');
-    expect(tempo.selectedIndex).toBe(-1);
+    expect(query(player, '.tempo-value').textContent).toBe('125%');
+    expect(faster.disabled).toBe(false);
+    faster.click();
+    await next(player, 'ratechange');
+    expect(player.playbackRate).toBe(1.35);
+  });
+
+  test('tempo steps clamp at both limits, including rates set through the API', async () => {
+    const player = await ready({ controls: true });
+    const slower = query<HTMLButtonElement>(player, '[part="tempo-decrease"]');
+    const faster = query<HTMLButtonElement>(player, '[part="tempo-increase"]');
+    for (const [rate, button, expected] of [
+      [0.55, slower, 0.5],
+      [1.45, faster, 1.5],
+      [0.25, faster, 0.5],
+      [2, slower, 1.5],
+    ] as const) {
+      player.playbackRate = rate;
+      await next(player, 'ratechange');
+      button.click();
+      await next(player, 'ratechange');
+      expect(player.playbackRate).toBe(expected);
+    }
+    player.playbackRate = 0.5;
+    await next(player, 'ratechange');
+    expect(slower.disabled).toBe(true);
+    slower.click();
+    expect(player.playbackRate).toBe(0.5);
+  });
+
+  test('back to beginning pauses playback and resets the time, markers and cursor', async () => {
+    const player = await ready({ controls: true });
+    await seek(player, 12);
+    await player.play();
+    const seeked = next(player, 'seeked');
+    query<HTMLButtonElement>(player, '.restart').click();
+    await seeked;
+    expect(player.paused).toBe(true);
+    expect(player.currentTime).toBe(0);
+    expect(player.currentBar).toBe(0);
+    expect(query(player, '.elapsed').textContent).toBe('0:00');
+    expect(query<HTMLInputElement>(player, '.seek').value).toBe('0');
+    expect(query(player, '.note-cursor').hidden).toBe(false);
+    await seek(player, 5);
+    const again = next(player, 'seeked');
+    query<HTMLButtonElement>(player, '.restart').click();
+    await again;
+    expect(player.currentTime).toBe(0);
+  });
+
+  test('disables playback and seeking before metadata and after the audio is removed', async () => {
+    const player = mount({ controls: true });
+    const controls = ['.play', '.restart', '.seek'].map((s) => query<HTMLButtonElement | HTMLInputElement>(player, s));
+    expect(controls.every((c) => c.disabled)).toBe(true);
+    player.setAttribute('audio', silentAudio(30));
+    await next(player, 'canplay');
+    expect(controls.every((c) => !c.disabled)).toBe(true);
+    const emptied = next(player, 'emptied');
+    player.removeAttribute('audio');
+    await emptied;
+    expect(controls.every((c) => c.disabled)).toBe(true);
+    expect(query(player, '.duration').textContent).toBe('0:00');
+  });
+
+  test('follow reflects its attribute and stays in sync with the checkbox and property', () => {
+    const player = mount({ controls: true, follow: true });
+    const checkbox = query<HTMLInputElement>(player, '.follow input');
+    const changed = vi.fn();
+    player.addEventListener('followchange', changed);
+    expect(player.follow).toBe(true);
+    expect(checkbox.checked).toBe(true);
+    checkbox.click();
+    expect(player.follow).toBe(false);
+    expect(player.hasAttribute('follow')).toBe(false);
+    expect(changed).toHaveBeenCalledTimes(1);
+    player.follow = true;
+    expect(checkbox.checked).toBe(true);
+    player.setAttribute('follow', 'true');
+    expect(changed).toHaveBeenCalledTimes(2);
+    player.removeAttribute('follow');
+    expect(checkbox.checked).toBe(false);
+    player.remove();
+    player.setAttribute('follow', '');
+    expect(checkbox.checked).toBe(true);
+    document.body.append(player);
+    expect(player.follow).toBe(true);
+  });
+
+  test('the follow checkbox switches automatic scrolling without stopping playback', async () => {
+    await browser.viewport(800, 600);
+    const player = await ready({ controls: true, follow: true });
+    player.style.width = '1400px';
+    const scroll = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {});
+    await player.play();
+    query<HTMLInputElement>(player, '.follow input').click();
+    await seek(player, startOf(player, 8) + 0.1);
+    expect(scroll).not.toHaveBeenCalled();
+    expect(player.paused).toBe(false);
+    query<HTMLInputElement>(player, '.follow input').click();
+    await seek(player, startOf(player, 10) + 0.1);
+    expect(scroll).toHaveBeenCalled();
+    player.pause();
+  });
+
+  test('narrow settings open and close with accessible state and keyboard focus', async () => {
+    const player = mount({ controls: true });
+    player.style.width = '390px';
+    const button = query<HTMLButtonElement>(player, '.settings-toggle');
+    const settings = query(player, '.settings');
+    expect(button.getAttribute('aria-controls')).toBe(settings.id);
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(getComputedStyle(settings).display).toBe('none');
+    button.click();
+    expect(button.getAttribute('aria-expanded')).toBe('true');
+    expect(getComputedStyle(settings).display).toBe('flex');
+    button.click();
+    expect(getComputedStyle(settings).display).toBe('none');
+    button.click();
+    const slower = query<HTMLButtonElement>(player, '[part="tempo-decrease"]');
+    slower.focus();
+    const other = new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true });
+    slower.dispatchEvent(other);
+    expect(other.defaultPrevented).toBe(false);
+    const esc = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    slower.dispatchEvent(esc);
+    expect(esc.defaultPrevented).toBe(true);
+    expect(button.getAttribute('aria-expanded')).toBe('false');
+    expect(getComputedStyle(settings).display).toBe('none');
+    expect(shadow(player).activeElement).toBe(button);
+    player.style.width = '800px';
+    const desktopEsc = new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true });
+    slower.focus();
+    slower.dispatchEvent(desktopEsc);
+    expect(desktopEsc.defaultPrevented).toBe(false);
+    expect(shadow(player).activeElement).toBe(slower);
   });
 
   test('a site’s own controls replace the built-in ones', async () => {
@@ -462,20 +603,43 @@ describe('theming', () => {
     expect(getComputedStyle(activeMarker(player)).backgroundColor).toMatch(/^(rgb\(0, 0, 255\)|color\(srgb 0 0 1\))$/);
   });
 
-  test('the compact preset hides the time and the tempo', () => {
+  test('the compact preset shows only play and seek, even with open settings', () => {
     const player = mount({ pages: blankPage(), controls: true });
     expect(getComputedStyle(query(player, '.time')).display).not.toBe('none');
+    query<HTMLButtonElement>(player, '.settings-toggle').click();
     player.style.setProperty('--segno-controls', 'compact');
     expect(getComputedStyle(query(player, '.time')).display).toBe('none');
-    expect(getComputedStyle(query(player, '.tempo')).display).toBe('none');
+    expect(getComputedStyle(query(player, '.restart')).display).toBe('none');
+    expect(getComputedStyle(query(player, '.settings')).display).toBe('none');
+    expect(getComputedStyle(query(player, '.settings-toggle')).display).toBe('none');
+    expect(getComputedStyle(query(player, '.seek')).display).not.toBe('none');
   });
 
-  test('the controls wrap in a narrow player', () => {
+  test('the settings collapse by player width, not viewport width, without overflowing', async () => {
+    await browser.viewport(1000, 700);
     const player = mount({ pages: blankPage(), controls: true });
     player.style.width = '800px';
     expect(getComputedStyle(query(player, '.controls')).flexWrap).toBe('nowrap');
-    player.style.width = '300px';
-    expect(getComputedStyle(query(player, '.controls')).flexWrap).toBe('wrap');
+    expect(getComputedStyle(query(player, '.settings')).display).toBe('flex');
+    expect(getComputedStyle(query(player, '.settings-toggle')).display).toBe('none');
+    for (const width of [280, 320, 390, 600]) {
+      player.style.width = `${width}px`;
+      const bar = query(player, '.controls');
+      expect(getComputedStyle(bar).flexWrap).toBe('wrap');
+      expect(getComputedStyle(query(player, '.settings')).display).toBe('none');
+      expect(getComputedStyle(query(player, '.settings-toggle')).display).toBe('grid');
+      expect(bar.scrollWidth).toBeLessThanOrEqual(bar.clientWidth);
+      const row = query(player, '.play').getBoundingClientRect();
+      for (const selector of ['.restart', '.progress', '.settings-toggle']) {
+        expect(query(player, selector).getBoundingClientRect().top).toBeGreaterThanOrEqual(row.top);
+        expect(query(player, selector).getBoundingClientRect().bottom).toBeLessThanOrEqual(row.bottom);
+      }
+      query<HTMLButtonElement>(player, '.settings-toggle').click();
+      expect(bar.scrollWidth).toBeLessThanOrEqual(bar.clientWidth);
+      query<HTMLButtonElement>(player, '.settings-toggle').click();
+    }
+    player.style.width = '800px';
+    expect(getComputedStyle(query(player, '.settings')).display).toBe('flex');
     player.style.setProperty('--segno-controls', 'compact');
     expect(getComputedStyle(query(player, '.controls')).flexWrap).toBe('nowrap');
   });

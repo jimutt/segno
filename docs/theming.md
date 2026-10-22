@@ -16,27 +16,27 @@ segno-player {
 }
 ```
 
-| Property                      | Default                                          | What it sets                                                           |
-| ----------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------- |
-| `--segno-accent`              | `#b3261e`                                        | The colour of the bar marker, the note cursor and the controls' accent |
-| `--segno-bar-strength`        | `7%`                                             | How much of the accent tints the bar marker                            |
-| `--segno-bar-fade-in`         | `90ms`                                           | How fast the bar marker appears on a new bar                           |
-| `--segno-bar-fade-out`        | `260ms`                                          | How fast it leaves the previous one                                    |
-| `--segno-cursor-width`        | `2px`                                            | The note cursor's width                                                |
-| `--segno-cursor-strength`     | `55%`                                            | How much of the accent colours the note cursor                         |
-| `--segno-page-gap`            | `1rem`                                           | Space between pages                                                    |
-| `--segno-page-background`     | `#fff`                                           | The sheet behind each page                                             |
-| `--segno-page-shadow`         | a soft shadow                                    | The pages' shadow (`none` for flat pages)                              |
-| `--segno-controls-background` | `light-dark()` of a white and a dark translucent | The built-in controls' background                                      |
-| `--segno-controls-color`      | `light-dark()` of a dark and a light grey        | The built-in controls' text and icons                                  |
-| `--segno-controls-accent`     | `--segno-accent`                                 | The play button and the slider's fill                                  |
-| `--segno-controls-radius`     | `0.75rem`                                        | The controls' corner radius                                            |
-| `--segno-controls-gap`        | `0.5rem`                                         | Space between the controls                                             |
-| `--segno-font`                | `inherit`                                        | The controls' font                                                     |
+| Property                      | Default                       | What it sets                                                           |
+| ----------------------------- | ----------------------------- | ---------------------------------------------------------------------- |
+| `--segno-accent`              | `#b3261e`                     | The colour of the bar marker, the note cursor and the controls' accent |
+| `--segno-bar-strength`        | `7%`                          | How much of the accent tints the bar marker                            |
+| `--segno-bar-fade-in`         | `90ms`                        | How fast the bar marker appears on a new bar                           |
+| `--segno-bar-fade-out`        | `260ms`                       | How fast it leaves the previous one                                    |
+| `--segno-cursor-width`        | `2px`                         | The note cursor's width                                                |
+| `--segno-cursor-strength`     | `55%`                         | How much of the accent colours the note cursor                         |
+| `--segno-page-gap`            | `1rem`                        | Space between pages                                                    |
+| `--segno-page-background`     | `#fff`                        | The sheet behind each page                                             |
+| `--segno-page-shadow`         | a soft shadow                 | The pages' shadow (`none` for flat pages)                              |
+| `--segno-controls-background` | `#1d1c1a`                     | The built-in controls' background                                      |
+| `--segno-controls-color`      | `#fff`                        | The built-in controls' text and icons                                  |
+| `--segno-controls-accent`     | `--segno-accent`              | The play button and the slider's fill                                  |
+| `--segno-controls-radius`     | `1.125rem`                    | The controls' corner radius                                            |
+| `--segno-controls-gap`        | `1.125rem` (narrow: `0.5rem`) | Space between the controls                                             |
+| `--segno-font`                | `inherit`                     | The controls' font                                                     |
 
 The markers are blended with `multiply`, so the notes under them stay black whatever the colour.
 
-The controls follow the page's `color-scheme`: with `color-scheme: light dark` on the page, they turn dark in dark mode on their own.
+The controls default to a dark bar with white text in either colour scheme, keeping playback distinct from the sheet. To follow your site's colour scheme instead, set `--segno-controls-background` and `--segno-controls-color` to your own colours or `light-dark()` pairs. Secondary buttons and dividers derive their colours from the controls' foreground.
 
 ## Presets
 
@@ -59,16 +59,23 @@ A preset switches a set of values with one property. Presets use container style
 
 For anything the properties don't cover, style the parts with `::part()`:
 
-| Part                                   | Element                                                                                 |
-| -------------------------------------- | --------------------------------------------------------------------------------------- |
-| `pages`                                | The scrolling column of pages (focusable, with the keyboard shortcuts)                  |
-| `page`                                 | Each page's sheet                                                                       |
-| `page-image`                           | Each page's image                                                                       |
-| `bar-marker`                           | The bar marker (two elements that crossfade)                                            |
-| `note-cursor`                          | The note cursor                                                                         |
-| `controls-area`                        | The area below the pages that holds the controls (sticky at the bottom of the viewport) |
-| `controls`                             | The built-in controls bar                                                               |
-| `play-button`, `time`, `seek`, `tempo` | The built-in controls                                                                   |
+| Part                               | Element                                                                                 |
+| ---------------------------------- | --------------------------------------------------------------------------------------- |
+| `pages`                            | The scrolling column of pages (focusable, with the keyboard shortcuts)                  |
+| `page`                             | Each page's sheet                                                                       |
+| `page-image`                       | Each page's image                                                                       |
+| `bar-marker`                       | The bar marker (two elements that crossfade)                                            |
+| `note-cursor`                      | The note cursor                                                                         |
+| `controls-area`                    | The area below the pages that holds the controls (sticky at the bottom of the viewport) |
+| `controls`                         | The built-in controls bar                                                               |
+| `play-button`, `restart-button`    | Play/pause and back to beginning                                                        |
+| `time`, `current-time`, `duration` | Both time labels, or the elapsed time and duration individually                         |
+| `seek`                             | The seek slider                                                                         |
+| `settings-button`, `settings`      | The narrow-layout disclosure button and the tempo/follow settings panel                 |
+| `tempo`                            | The tempo group                                                                         |
+| `tempo-decrease`, `tempo-increase` | The slower and faster buttons                                                           |
+| `tempo-value`                      | The current percentage                                                                  |
+| `follow`, `follow-input`           | The follow label and its checkbox                                                       |
 
 ```css
 segno-player::part(page) {
@@ -81,7 +88,9 @@ segno-player::part(controls-area) {
 
 ## Container queries
 
-The player is a size container named `segno-player`: its built-in controls lay out by the player's own width, wrapping onto two lines below 28rem. A size container doesn't take its width from its content, so in a layout that sizes elements to their content (an inline block, a flex row, an `auto` grid column) give the player a width, `width: 100%` or `flex: 1`, or it collapses to nothing. A site can do the same around the player with its own containers:
+The player is a size container named `segno-player`: its built-in controls lay out by the player's own width. At 44rem and wider, all controls share one row. Below 44rem, play, restart, time and seeking stay on one row with a settings button; tempo and follow appear in a second row only when that button is opened. Escape closes the panel and returns focus to the button. The compact preset hides restart, time and settings, leaving just play and seek.
+
+A size container doesn't take its width from its content, so in a layout that sizes elements to their content (an inline block, a flex row, an `auto` grid column) give the player a width, `width: 100%` or `flex: 1`, or it collapses to nothing. A site can do the same around the player with its own containers:
 
 ```css
 .sidebar {
