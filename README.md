@@ -70,6 +70,6 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for the setup,
 
 ## Licence
 
-Segno is free software under the [GNU General Public License v3.0 or later](LICENSE). A site that serves `<segno-player>` to its visitors distributes it, so the source must be available to them: the published package keeps its source readable and links back to this repository.
+Segno is open source under the [MIT License](LICENSE).
 
 "MuseScore" is a trademark of its owners; Segno is not affiliated with MuseScore. Test scores are listed with their sources and licences in [fixtures/SOURCES.md](fixtures/SOURCES.md).
