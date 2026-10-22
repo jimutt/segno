@@ -2,6 +2,13 @@
 
 | ID | Title | Status | Tags |
 |----|-------|--------|------|
+| DL-020 | The demo plays the visitor's own export | proposed | segno-player, demo |
+| DL-019 | Browser tests with Vitest's browser mode in Chromium | proposed | segno-player, tooling |
+| DL-018 | The player ships as ES modules, without a bundler | proposed | segno-player, packaging |
+| DL-017 | Loading, the animation loop and falling back to plain playback | proposed | segno-player |
+| DL-016 | Built-in controls from native elements, keyboard shortcuts and polite announcements | proposed | segno-player, accessibility |
+| DL-015 | Theming through --segno-* custom properties, parts, a size container and style-query presets | proposed | segno-player, theming |
+| DL-014 | The player renders into a shadow root: page images with percent-positioned marker overlays | proposed | segno-player |
 | DL-013 | The demo and pull request previews on GitHub Pages, from a gh-pages branch | accepted | demo, ci |
 | DL-012 | Releases with Changesets and npm trusted publishing | accepted | release, ci |
 | DL-011 | Strict TypeScript, Biome, Vitest with a coverage floor, a size budget, all in CI | accepted | tooling, ci |
