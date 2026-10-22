@@ -1,5 +1,5 @@
 # Types, lint, licence headers, tests with coverage, build and size budget on every push and pull request.
-# @decision(DL-011)
+# @decision(DL-011) @decision(DL-019)
 name: CI
 
 on:
@@ -35,6 +35,8 @@ jobs:
         run: npm run lint
       - name: Licence headers
         run: npm run license-headers
+      - name: Chromium for the browser tests
+        run: npx playwright install --with-deps chromium
       - name: Tests with coverage
         run: npm run coverage
       - name: Build

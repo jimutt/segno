@@ -2,13 +2,13 @@
 
 | ID | Title | Status | Tags |
 |----|-------|--------|------|
-| DL-020 | The demo plays the visitor's own export | proposed | segno-player, demo |
-| DL-019 | Browser tests with Vitest's browser mode in Chromium | proposed | segno-player, tooling |
-| DL-018 | The player ships as ES modules, without a bundler | proposed | segno-player, packaging |
-| DL-017 | Loading, the animation loop and falling back to plain playback | proposed | segno-player |
-| DL-016 | Built-in controls from native elements, keyboard shortcuts and polite announcements | proposed | segno-player, accessibility |
-| DL-015 | Theming through --segno-* custom properties, parts, a size container and style-query presets | proposed | segno-player, theming |
-| DL-014 | The player renders into a shadow root: page images with percent-positioned marker overlays | proposed | segno-player |
+| DL-020 | The demo plays the visitor's own export | accepted | segno-player, demo |
+| DL-019 | Browser tests with Vitest's browser mode in Chromium | accepted | segno-player, tooling |
+| DL-018 | The player ships as ES modules, without a bundler | accepted | segno-player, packaging |
+| DL-017 | Loading, the animation loop and falling back to plain playback | accepted | segno-player |
+| DL-016 | Built-in controls from native elements, keyboard shortcuts and polite announcements | accepted | segno-player, accessibility |
+| DL-015 | Theming through --segno-* custom properties, parts, a size container and style-query presets | accepted | segno-player, theming |
+| DL-014 | The player renders into a shadow root: page images with percent-positioned marker overlays | accepted | segno-player |
 | DL-013 | The demo and pull request previews on GitHub Pages, from a gh-pages branch | accepted | demo, ci |
 | DL-012 | Releases with Changesets and npm trusted publishing | accepted | release, ci |
 | DL-011 | Strict TypeScript, Biome, Vitest with a coverage floor, a size budget, all in CI | accepted | tooling, ci |
@@ -16,8 +16,8 @@
 | DL-009 | Timeline lookups: the note cursor's motion, the notehead estimate and seeking within repeats | accepted | core, player |
 | DL-008 | No trademark in names; only open-licensed test scores, listed with their sources | accepted | open-source, fixtures |
 | DL-007 | Licensed MIT, with SPDX headers | accepted | licence, open-source |
-| DL-006 | Marker design and default leads | proposed | player, design |
-| DL-005 | `<segno-player>`, a framework-free web component, as the main integration | proposed | player, architecture |
+| DL-006 | Marker design and default leads | accepted | player, design |
+| DL-005 | `<segno-player>`, a framework-free web component, as the main integration | accepted | player, architecture |
 | DL-004 | A dependency-free core that runs in Node and the browser | accepted | core, architecture |
 | DL-003 | A versioned sync map format with positions as fractions of the page | accepted | format, core |
 | DL-002 | MuseScore's position files are the input, and its unrolled playback order is the truth | accepted | inputs, core |

@@ -1,0 +1,96 @@
+// SPDX-License-Identifier: MIT
+// Copyright (C) 2026 The Segno contributors
+// https://github.com/jimutt/segno
+
+import { formatTime } from './format.js';
+
+/** What the controls need from the player: the media-element part of its API */
+export interface Playable extends EventTarget {
+  readonly paused: boolean;
+  readonly duration: number;
+  currentTime: number;
+  playbackRate: number;
+  play(): Promise<void>;
+  pause(): void;
+}
+
+const svgNS = 'http://www.w3.org/2000/svg';
+const icons = { play: 'M4 2.5v11l9.5-5.5z', pause: 'M3.5 2h3v12h-3zM9.5 2h3v12h-3z' };
+
+// An element with a class name, a part and some properties
+function element<K extends keyof HTMLElementTagNameMap>(
+  tag: K,
+  name: string,
+  part: string,
+  props: Partial<Omit<HTMLElementTagNameMap[K], 'part'>> = {},
+): HTMLElementTagNameMap[K] {
+  const el = Object.assign(document.createElement(tag), props);
+  el.className = name;
+  el.setAttribute('part', part);
+  return el;
+}
+
+/**
+ * The built-in controls: play/pause, the time, a seek slider and the tempo, all native elements.
+ * @decision(DL-016)
+ */
+export function createControls(player: Playable): HTMLElement {
+  const bar = element('div', 'controls', 'controls');
+  bar.setAttribute('role', 'group');
+  bar.setAttribute('aria-label', 'Player');
+
+  const play = element('button', 'play', 'play-button', { type: 'button' });
+  const icon = document.createElementNS(svgNS, 'svg');
+  icon.setAttribute('viewBox', '0 0 16 16');
+  icon.setAttribute('aria-hidden', 'true');
+  const path = document.createElementNS(svgNS, 'path');
+  icon.append(path);
+  play.append(icon);
+  play.addEventListener('click', () => {
+    if (player.paused) player.play().catch(() => {});
+    else player.pause();
+  });
+
+  const time = element('span', 'time', 'time');
+  const seek = element('input', 'seek', 'seek', { type: 'range', min: '0', max: '0', step: 'any' });
+  seek.setAttribute('aria-label', 'Position');
+  seek.addEventListener('input', () => {
+    player.currentTime = Number(seek.value);
+  });
+
+  const tempo = element('select', 'tempo', 'tempo');
+  tempo.setAttribute('aria-label', 'Tempo');
+  for (let percent = 50; percent <= 150; percent += 10) {
+    tempo.append(new Option(`${percent}%`, String(percent / 100), percent === 100, percent === 100));
+  }
+  tempo.addEventListener('change', () => {
+    player.playbackRate = Number(tempo.value);
+  });
+
+  const showState = (): void => {
+    const paused = player.paused;
+    path.setAttribute('d', paused ? icons.play : icons.pause);
+    play.setAttribute('aria-label', paused ? 'Play' : 'Pause');
+  };
+  const showTime = (): void => {
+    const duration = Number.isFinite(player.duration) ? player.duration : 0;
+    seek.max = String(duration);
+    seek.value = String(player.currentTime);
+    const now = formatTime(player.currentTime);
+    const total = formatTime(duration);
+    time.textContent = `${now} / ${total}`;
+    seek.setAttribute('aria-valuetext', `${now} of ${total}`);
+  };
+  const showRate = (): void => {
+    const value = String(player.playbackRate);
+    if ([...tempo.options].some((o) => o.value === value)) tempo.value = value;
+  };
+  for (const type of ['play', 'pause', 'ended']) player.addEventListener(type, showState);
+  for (const type of ['timeupdate', 'durationchange', 'seeked']) player.addEventListener(type, showTime);
+  player.addEventListener('ratechange', showRate);
+  showState();
+  showTime();
+
+  bar.append(play, time, seek, tempo);
+  return bar;
+}

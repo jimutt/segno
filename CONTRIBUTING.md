@@ -13,17 +13,21 @@ npm install
 npm test
 ```
 
+The player's tests run in Chromium through Playwright. `npx playwright install chromium` downloads it once; to use a Chromium you already have, point `CHROMIUM_PATH` at its executable instead.
+
+`npm run demo` builds the demo site and serves it locally, to try the player with your own exports.
+
 ## Checks
 
 CI runs these on every pull request; `npm run check` runs them all locally:
 
-| Command                         | What it checks                                                                                                |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| `npm run typecheck`             | TypeScript, strict (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`) |
-| `npm run lint`                  | Biome: lint and format. `npm run lint:fix` fixes what it can                                                  |
-| `npm run license-headers`       | Every source file starts with `// SPDX-License-Identifier: MIT`                                               |
-| `npm run coverage`              | Vitest, with at least 90% of lines, functions, branches and statements covered                                |
-| `npm run build`, `npm run size` | The build, and its gzipped size against the budget in `scripts/check-size.mjs`                                |
+| Command                         | What it checks                                                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| `npm run typecheck`             | TypeScript, strict (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`)             |
+| `npm run lint`                  | Biome: lint and format. `npm run lint:fix` fixes what it can                                                              |
+| `npm run license-headers`       | Every source file starts with `// SPDX-License-Identifier: MIT`                                                           |
+| `npm run coverage`              | Vitest (the core in Node, the player in Chromium), with at least 90% of lines, functions, branches and statements covered |
+| `npm run build`, `npm run size` | The build, and its gzipped size against the budget in `scripts/check-size.mjs`                                            |
 
 The coverage floor only goes up: if your change raises coverage, you may raise the thresholds in `vitest.config.ts`.
 

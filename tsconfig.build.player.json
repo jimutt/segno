@@ -1,0 +1,10 @@
+// The player's build: like the core's, with the DOM library. The core compiles first on its own, without it.
+// @decision(DL-018)
+{
+  "extends": "./tsconfig.build.json",
+  "compilerOptions": {
+    "lib": ["es2023", "dom", "dom.iterable"]
+  },
+  "include": ["src/player"],
+  "exclude": ["src/**/*.test.ts", "src/**/test-*.ts"]
+}
