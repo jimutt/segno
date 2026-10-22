@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-3.0-or-later
+// SPDX-License-Identifier: MIT
 // Copyright (C) 2026 The Segno contributors
 // https://github.com/jimutt/segno
 
@@ -8,7 +8,7 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 
-const header = '// SPDX-License-Identifier: GPL-3.0-or-later';
+const header = '// SPDX-License-Identifier: MIT';
 const files = execFileSync('git', ['ls-files', '--cached', '--others', '--exclude-standard', '*.ts', '*.js', '*.mjs'], {
   encoding: 'utf8',
 })
