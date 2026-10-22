@@ -21,7 +21,7 @@ CI runs these on every pull request; `npm run check` runs them all locally:
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `npm run typecheck`             | TypeScript, strict (`strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`) |
 | `npm run lint`                  | Biome: lint and format. `npm run lint:fix` fixes what it can                                                  |
-| `npm run license-headers`       | Every source file starts with `// SPDX-License-Identifier: GPL-3.0-or-later`                                  |
+| `npm run license-headers`       | Every source file starts with `// SPDX-License-Identifier: MIT`                                               |
 | `npm run coverage`              | Vitest, with at least 90% of lines, functions, branches and statements covered                                |
 | `npm run build`, `npm run size` | The build, and its gzipped size against the budget in `scripts/check-size.mjs`                                |
 
@@ -34,7 +34,7 @@ The coverage floor only goes up: if your change raises coverage, you may raise t
 - New source files start with the SPDX header:
 
   ```ts
-  // SPDX-License-Identifier: GPL-3.0-or-later
+  // SPDX-License-Identifier: MIT
   // Copyright (C) 2026 The Segno contributors
   // https://github.com/jimutt/segno
   ```
@@ -55,4 +55,4 @@ Every pull request that changes the published package adds a changeset: run `npx
 
 ## Licence
 
-By contributing, you agree that your contributions are licensed under the [GPL-3.0-or-later](LICENSE).
+By contributing, you agree that your contributions are licensed under the [MIT License](LICENSE), the same as the rest of the project.
