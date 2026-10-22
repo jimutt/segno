@@ -107,75 +107,179 @@ export const css = /* css */ `
   display: flex;
   align-items: center;
   margin-top: 0.75rem;
-  gap: var(--segno-controls-gap, 0.5rem);
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--segno-controls-radius, 0.75rem);
-  background: var(--segno-controls-background, light-dark(rgb(255 255 255 / 0.92), rgb(30 29 27 / 0.92)));
-  color: var(--segno-controls-color, light-dark(#1d1c1a, #ecebe7));
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.12), 0 4px 16px rgb(0 0 0 / 0.1);
-  backdrop-filter: blur(8px);
+  gap: var(--segno-controls-gap, 1.125rem);
+  padding: 0.75rem 1.125rem;
+  border-radius: var(--segno-controls-radius, 1.125rem);
+  background: var(--segno-controls-background, #1d1c1a);
+  color: var(--segno-controls-color, #fff);
+  box-shadow: 0 16px 40px rgb(0 0 0 / 0.35);
   accent-color: var(--segno-controls-accent, var(--segno-accent, #b3261e));
+  font-size: 0.875rem;
   font-variant-numeric: tabular-nums;
 }
-.play {
+.controls button {
   flex: none;
   display: grid;
   place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: var(--segno-controls-accent, var(--segno-accent, #b3261e));
-  color: #fff;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
 }
-.play:focus-visible,
-.seek:focus-visible,
-.tempo:focus-visible {
-  outline: 2px solid var(--segno-controls-accent, var(--segno-accent, #b3261e));
+.controls :focus-visible {
+  outline: 2px solid currentColor;
   outline-offset: 2px;
 }
-.play svg {
+.controls button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+.controls svg {
   width: 1rem;
   height: 1rem;
   fill: currentColor;
 }
+.controls .play {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 50%;
+  background: var(--segno-controls-accent, var(--segno-accent, #b3261e));
+  color: #fff;
+}
+.play svg {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+.control-button {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, currentColor 10%, transparent);
+}
+.controls button:not(:disabled):hover {
+  filter: brightness(1.2);
+}
+.control-button:not(:disabled):hover {
+  background: color-mix(in srgb, currentColor 20%, transparent);
+}
+.restart svg,
+.settings-toggle svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+.progress {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 0.5rem;
+}
 .time {
+  flex: none;
   white-space: nowrap;
 }
 .seek {
   flex: 1;
-  min-width: 6rem;
+  min-width: 2.5rem;
+  height: 2.75rem;
   margin: 0;
+  cursor: pointer;
+}
+.settings {
+  display: flex;
+  align-items: center;
+  gap: var(--segno-controls-gap, 1.125rem);
+  padding-left: 1.125rem;
+  border-left: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+}
+.controls .settings-toggle {
+  display: none;
 }
 .tempo {
-  font: inherit;
-  color: inherit;
-  background: transparent;
-  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
-  border-radius: 0.375rem;
-  padding: 0.125rem 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
 }
-@container segno-player (width < 28rem) {
+.tempo > span:first-child {
+  margin-right: 0.25rem;
+}
+.tempo .control-button {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  font-size: 1.125rem;
+}
+.tempo-value {
+  min-width: 2.75rem;
+  text-align: center;
+  font-weight: 700;
+}
+.follow {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  gap: 0.5rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.follow input {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin: 0;
+}
+@container segno-player (width < 44rem) {
   .controls {
     flex-wrap: wrap;
+    gap: var(--segno-controls-gap, 0.5rem);
+    padding: 0.625rem;
+  }
+  .controls .play {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+  .controls .restart,
+  .settings-toggle {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  .progress {
+    gap: 0.375rem;
+    font-size: 0.8125rem;
   }
   .seek {
-    order: 3;
+    min-width: 1.5rem;
+  }
+  .controls .settings-toggle {
+    display: grid;
+  }
+  .settings {
+    display: none;
     flex-basis: 100%;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 1.25rem;
+    border-left: 0;
+    border-top: 1px solid color-mix(in srgb, currentColor 15%, transparent);
+    padding: 0.375rem 0 0;
+  }
+  .settings.is-open {
+    display: flex;
+  }
+  .tempo .control-button {
+    width: 2.75rem;
+    height: 2.75rem;
   }
 }
 @container style(--segno-controls: compact) {
   .controls {
     flex-wrap: nowrap;
   }
-  .seek {
-    order: 0;
-    flex-basis: auto;
-  }
   .time,
-  .tempo {
+  .controls .restart,
+  .controls .settings-toggle,
+  .settings,
+  .settings.is-open {
     display: none;
   }
 }

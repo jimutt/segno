@@ -52,6 +52,7 @@ export class SegnoPlayer extends Base {
         'note-cursor',
         'bar-lead',
         'note-lead',
+        'follow',
     ];
     #audio = document.createElement('audio');
     #pagesEl = document.createElement('div');
@@ -157,7 +158,14 @@ export class SegnoPlayer extends Base {
     /** Moving the element with `moveBefore()` keeps it playing */
     connectedMoveCallback() { }
     attributeChangedCallback(name, previous, value) {
-        if (!this.isConnected || previous === value)
+        if (previous === value)
+            return;
+        if (name === 'follow') {
+            if ((previous === null) !== (value === null))
+                this.dispatchEvent(new Event('followchange'));
+            return;
+        }
+        if (!this.isConnected)
             return;
         if (name === 'alt')
             this.#updateAlt();
@@ -198,6 +206,13 @@ export class SegnoPlayer extends Base {
         this.#audio.pause();
     }
     // What Segno adds
+    /** Whether playback scrolls the score into view; reflects the boolean `follow` attribute. */
+    get follow() {
+        return this.hasAttribute('follow');
+    }
+    set follow(value) {
+        this.toggleAttribute('follow', value);
+    }
     /** The bar being played, as an index into the sync map's bars; -1 without markers */
     get currentBar() {
         return this.#bar;
