@@ -1,0 +1,70 @@
+# The demo site on GitHub Pages: main at the root, each pull request under pr-preview/pr-<number>/, both on the
+# gh-pages branch.
+# @decision(DL-013)
+name: Pages
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, reopened, synchronize, closed]
+
+permissions: {}
+
+jobs:
+  deploy:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    concurrency:
+      group: pages-main
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build:demo
+        env:
+          SEGNO_COMMIT: ${{ github.sha }}
+      - uses: JamesIves/github-pages-deploy-action@fa24774553152dd7873cd16ebd8d959b010c5445 # v4.9.0
+        with:
+          folder: site
+          branch: gh-pages
+          # Keep the pull requests' previews, and rebase instead of force-pushing over them
+          clean-exclude: pr-preview/
+          force: false
+
+  preview:
+    # Previews for branches in this repository only: a fork's token can't push to gh-pages
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: preview-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: github.event.action != 'closed'
+        with:
+          node-version: 24
+          cache: npm
+      - if: github.event.action != 'closed'
+        run: npm ci
+      - if: github.event.action != 'closed'
+        run: npm run build:demo
+        env:
+          SEGNO_COMMIT: ${{ github.event.pull_request.head.sha }}
+      # Deploys on opened, reopened and synchronize; removes the preview on closed
+      - uses: rossjrw/pr-preview-action@ffa7509e91a3ec8dfc2e5536c4d5c1acdf7a6de9 # v1.8.1
+        with:
+          source-dir: site
+          preview-branch: gh-pages
+          umbrella-dir: pr-preview
+          qr-code: false

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+coverage/
+*.tgz
+.dld-state.yaml.lock
+site/
+.vitest/

@@ -1,0 +1,79 @@
+{
+  "name": "segno",
+  "version": "0.0.0",
+  "description": "Play a score's own audio on its own engraved pages, following the bar and the notes. For MuseScore exports.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jimutt/segno.git"
+  },
+  "homepage": "https://github.com/jimutt/segno#readme",
+  "bugs": "https://github.com/jimutt/segno/issues",
+  "keywords": [
+    "sheet music",
+    "score",
+    "notation",
+    "audio",
+    "sync",
+    "player",
+    "musescore"
+  ],
+  "type": "module",
+  "sideEffects": [
+    "./dist/player/index.js",
+    "./src/player/index.ts"
+  ],
+  "exports": {
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "default": "./dist/core/index.js"
+    },
+    "./player": {
+      "types": "./dist/player/index.d.ts",
+      "default": "./dist/player/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src/core",
+    "src/player",
+    "!src/**/*.test.ts",
+    "!src/**/test-*.ts"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && tsc -p tsconfig.build.player.json",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome ci .",
+    "lint:fix": "biome check --write .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "size": "node scripts/check-size.mjs",
+    "check": "npm run typecheck && npm run lint && npm run license-headers && npm run coverage && npm run build && npm run size",
+    "changeset": "changeset",
+    "release": "npm run build && changeset publish",
+    "license-headers": "node scripts/check-spdx.mjs",
+    "smoke": "node --input-type=module -e \"const core = await import('segno/core'); await import('segno/player'); if (typeof core.buildSync !== 'function') process.exit(1);\"",
+    "build:demo": "npm run build && node scripts/build-demo.mjs",
+    "demo": "npm run build:demo && vite site"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.6.2",
+    "@changesets/cli": "^3.0.3",
+    "@types/node": "^22.20.5",
+    "@vitest/browser-playwright": "^5.0.5",
+    "@vitest/coverage-v8": "^5.0.5",
+    "playwright": "^1.64.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
+  },
+  "publishConfig": {
+    "provenance": true,
+    "access": "public"
+  }
+}

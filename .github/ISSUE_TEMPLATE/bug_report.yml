@@ -1,0 +1,35 @@
+name: Bug report
+description: Something doesn't work as documented
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: How to reproduce
+      description: The smallest steps or code that show the problem. If it depends on a score, attach its exports (or the score) if you can share them.
+    validations:
+      required: true
+  - type: input
+    id: segno
+    attributes:
+      label: Segno version
+      placeholder: 0.1.0
+    validations:
+      required: true
+  - type: input
+    id: musescore
+    attributes:
+      label: MuseScore version used for the export
+      placeholder: 4.7.5
+  - type: input
+    id: environment
+    attributes:
+      label: Browser or Node.js version, and OS
+      placeholder: Firefox 140 on Windows 11 / Node.js 22.12 on Linux
