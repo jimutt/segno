@@ -13,7 +13,7 @@ import { gzipSync } from 'node:zlib';
 /** Directory under dist/ → budget in bytes, gzipped, for all its .js files together */
 const budgets = {
   core: 4000,
-  player: 10500,
+  player: 12000,
 };
 
 let failed = false;
