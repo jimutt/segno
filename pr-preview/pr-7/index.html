@@ -1,0 +1,170 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: MIT -->
+<!-- Copyright (C) 2026 The Segno contributors -->
+<!-- https://github.com/jimutt/segno -->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Segno</title>
+    <meta name="description" content="Play a score's own audio on its own engraved pages, following the bar and the notes." />
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #fbfaf7;
+        --fg: #1d1c1a;
+        --muted: #6b6760;
+        --line: #dedad2;
+        --accent: #b3261e;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #161513;
+          --fg: #ecebe7;
+          --muted: #a19d95;
+          --line: #3a3833;
+          --accent: #f2867e;
+        }
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font: 1.0625rem/1.6 system-ui, sans-serif;
+      }
+      main {
+        max-width: 52rem;
+        margin: 0 auto;
+        padding: 3rem 1rem 4rem;
+      }
+      h1 {
+        font: 400 3rem/1.1 Georgia, "Times New Roman", serif;
+        margin: 0 0 1rem;
+      }
+      h1 span,
+      a {
+        color: var(--accent);
+      }
+      h2 {
+        font-size: 1.125rem;
+        margin: 2.5rem 0 0.5rem;
+      }
+      .muted,
+      footer {
+        color: var(--muted);
+      }
+      .pick {
+        display: block;
+        padding: 1.25rem;
+        border: 2px dashed var(--line);
+        border-radius: 0.75rem;
+        cursor: pointer;
+      }
+      .pick:focus-within,
+      .pick:hover {
+        border-color: var(--accent);
+      }
+      .pick input {
+        display: block;
+        margin-top: 0.5rem;
+        max-width: 100%;
+      }
+      #status {
+        min-height: 1.6em;
+        margin: 0.75rem 0 1.25rem;
+      }
+      segno-player {
+        --segno-accent: #b3261e;
+      }
+      footer {
+        margin-top: 3rem;
+        font-size: 0.875rem;
+      }
+      code {
+        font-size: 0.9em;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1><span aria-hidden="true">𝄋</span> Segno</h1>
+      <p>
+        Play a score's own audio on its own engraved pages, and follow along: a marker on the bar being played and a
+        thin cursor that flows from note to note. Built for MuseScore exports.
+      </p>
+
+      <h2>Try it with your own export</h2>
+      <p class="muted">
+        Export a score from MuseScore as SVG, MP3 and the bar positions (<code>.mpos</code>), and optionally the note
+        positions (<code>.spos</code>), as described in the
+        <a href="https://github.com/jimutt/segno#exporting-from-musescore">README</a>. Pick all of its files here. They
+        stay in your browser.
+      </p>
+      <label class="pick">
+        The files of one export: <code>song-1.svg</code>, <code>song-2.svg</code>, …, <code>song.mp3</code>,
+        <code>song.mpos</code>, <code>song.spos</code>
+        <input id="files" type="file" multiple accept=".svg,.mp3,.ogg,.oga,.wav,.flac,.m4a,.mpos,.spos" />
+      </label>
+      <p id="status" role="status"></p>
+      <segno-player id="player" controls follow hidden></segno-player>
+
+      <footer>
+        Source and documentation: <a href="https://github.com/jimutt/segno">github.com/jimutt/segno</a>. Built from
+        <code>f137c3a</code>.
+      </footer>
+    </main>
+    <script type="module">
+      // @decision(DL-020)
+      import './segno/player/index.js';
+
+      const input = document.querySelector('#files');
+      const player = document.querySelector('#player');
+      const status = document.querySelector('#status');
+      let urls = [];
+
+      // song-2.svg → 2; pages come in page order whatever order they were picked in
+      const pageNumber = (name) => Number(name.match(/-(\d+)\.svg$/i)?.[1] ?? 0);
+      const url = (file) => {
+        const u = URL.createObjectURL(file);
+        urls.push(u);
+        return u;
+      };
+
+      input.addEventListener('change', () => {
+        for (const u of urls) URL.revokeObjectURL(u);
+        urls = [];
+        const files = [...input.files];
+        const pages = files.filter((f) => /\.svg$/i.test(f.name)).sort((a, b) => pageNumber(a.name) - pageNumber(b.name));
+        const audio = files.find((f) => /\.(mp3|ogg|oga|wav|flac|m4a)$/i.test(f.name));
+        const positions = files.find((f) => /\.mpos$/i.test(f.name));
+        const notes = files.find((f) => /\.spos$/i.test(f.name));
+        const missing = [!pages.length && 'the SVG pages', !audio && 'the audio', !positions && 'the .mpos file'].filter(Boolean);
+        if (missing.length) {
+          status.textContent = `Missing ${missing.join(', ')}.`;
+          player.pause();
+          player.hidden = true;
+          return;
+        }
+        status.textContent = 'Loading…';
+        player.setAttribute('alt', audio.name.replace(/\.[^.]+$/, ''));
+        player.setAttribute('pages', pages.map(url).join(' '));
+        player.setAttribute('audio', url(audio));
+        player.setAttribute('positions', url(positions));
+        if (notes) player.setAttribute('notes', url(notes));
+        else player.removeAttribute('notes');
+        player.hidden = false;
+      });
+
+      player.addEventListener('error', () => {
+        status.textContent = 'The browser can’t play this audio file. MP3 works everywhere.';
+      });
+
+      player.addEventListener('canplay', () => {
+        const pages = player.getAttribute('pages').split(' ').length;
+        status.textContent = player.sync
+          ? `${player.sync.bars.length} bars on ${pages} ${pages === 1 ? 'page' : 'pages'}. Press play, or click a bar.`
+          : 'These files don’t fit together, so it plays without markers. The browser console says why.';
+      });
+    </script>
+  </body>
+</html>
