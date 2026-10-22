@@ -19,6 +19,8 @@ const commit = (process.env.SEGNO_COMMIT || execFileSync('git', ['rev-parse', 'H
 
 rmSync('site', { recursive: true, force: true });
 cpSync('demo', 'site', { recursive: true });
+// The score source and its matching MuseScore exports, including the attribution shown on the demo.
+cpSync('fixtures/nar-juldagsmorgon-glimmar', 'site/scores/nar-juldagsmorgon-glimmar', { recursive: true });
 // The modules only: no declarations or maps on the site
 cpSync('dist', 'site/segno', { recursive: true, filter: (src) => !/\.(d\.ts|map)$/.test(src) });
 const index = 'site/index.html';
