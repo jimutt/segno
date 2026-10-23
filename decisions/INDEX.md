@@ -2,6 +2,7 @@
 
 | ID | Title | Status | Tags |
 |----|-------|--------|------|
+| DL-021 | Visual identity and demo design: engraved-segno logotype and Swiss grid | accepted | demo, design |
 | DL-020 | The demo plays a bundled example or the visitor's own export | accepted | segno-player, demo |
 | DL-019 | Browser tests with Vitest's browser mode in Chromium | accepted | segno-player, tooling |
 | DL-018 | The player ships as ES modules, without a bundler | accepted | segno-player, packaging |
