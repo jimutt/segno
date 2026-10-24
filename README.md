@@ -1,6 +1,10 @@
-# Segno
+# <img src="docs/logo.svg" alt="Segno" height="54" />
+
+<!-- @decision(DL-021) -->
 
 Play a score's own audio on its own engraved pages, and follow along: a marker on the bar being played and a thin cursor that flows from note to note. Built for MuseScore exports.
+
+[![Segno player showing a bar marker, note cursor and playback controls on När juldagsmorgon glimmar](docs/preview.png)](https://jimutt.github.io/segno/)
 
 Web notation libraries draw the score themselves from MusicXML or similar, reflowing it to the screen, which can make a carefully engraved score harder to read. Where they offer playback, it is usually synthesized, or a recording aligned by hand. Segno keeps the pages the engraver set and plays a real recording without manual alignment: MuseScore already exports the position and time of every bar and note in playback order, so Segno never interprets the score itself.
 
